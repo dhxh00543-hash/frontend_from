@@ -23,7 +23,7 @@ export default function FormRegister() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    //console.log(form);
+    console.log(form);
 
     try{
       const response = await fetch("https://api.itdev.cmtc.ac.th/users", {
@@ -34,7 +34,7 @@ export default function FormRegister() {
         body:JSON.stringify({
           firstname : form.txt_firstname,
           lastname : form.txt_lastname,
-          username : form.txt_username,
+          username : form.txt_email,
           password : form.txt_password
         }),
       });
@@ -114,8 +114,8 @@ export default function FormRegister() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">กรุณาระบุ uesrname</label>
-            <input type="text" name="txt_username" defaultValue={form.txt_username} onChange={handleChange} className='w-full border border-gray-300 text-gray-800 rounded-lg px-4 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100' placeholder='username' />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">กรุณาระบุ email</label>
+            <input type="email" name="txt_email" defaultValue={form.txt_email} onChange={handleChange} className='w-full border border-gray-300 text-gray-800 rounded-lg px-4 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100' placeholder='email' />
           </div>
 
           <div>
