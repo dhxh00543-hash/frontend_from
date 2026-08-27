@@ -11,8 +11,8 @@ const baloo = Baloo_2({
 const links = [
   { href: "/", label: "หน้าแรก" },
   { href: "/about", label: "เกี่ยวกับ" },
-  { href: "/service", label: "บริการของเรา" },
-  { href: "/chikens", label: "ไก่ของเรา" }, // เตรียมไว้สำหรับหน้าที่ดึงข้อมูลด้วย GET
+  { href: "/services", label: "บริการของเรา" },
+   // เตรียมไว้สำหรับหน้าที่ดึงข้อมูลด้วย GET
   { href: "/contact", label: "ติดต่อ" },
 ];
 
