@@ -1,7 +1,7 @@
 async function getUsers() {
     try {
     console.log("กำลังเชื่อมต่อ API...");
-    const res = await fetch('https://api.itdev.cmtc.ac.th/users');
+    const res = await fetch('https://6a7eb09d3183f5fd884a530f.mockapi.io/api/pd');
    
     if (!res.ok) {
       if (res.status === 404) {
