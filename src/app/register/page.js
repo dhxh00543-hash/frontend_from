@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Baloo_2 } from "next/font/google";
 import Swal from "sweetalert2";
 
@@ -11,6 +12,7 @@ const baloo = Baloo_2({
 
 export default function FormRegister() {
   const fileInputRef = useRef(null);
+  const router = useRouter();
 
   const [form, setForm] = useState({
     txt_chikenname: "",
@@ -72,7 +74,6 @@ export default function FormRegister() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(form);
 
     if (!validate()) {
       await Swal.fire({
@@ -86,13 +87,13 @@ export default function FormRegister() {
     }
 
     try {
-      // ยิง request แบบ POST ไปยัง API เพื่อสร้างข้อมูล user ใหม่
+      // ยิง request แบบ POST ไปยัง API เพื่อเพิ่มไก่ตัวใหม่เข้าชุมชน
       const response = await fetch(
         "https://6a7eb09d3183f5fd884a530f.mockapi.io/api/pd",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json", // บอก server ว่าข้อมูลที่ส่งไปเป็น JSON
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             chikenname: form.txt_chikenname,
@@ -104,15 +105,13 @@ export default function FormRegister() {
       );
 
       const result = await response.json();
-      // เช็ค status code ของ response เพื่อแยกกรณีการแสดงผล
+
       if (response.ok) {
-        // response.ok = true เมื่อ status อยู่ในช่วง 200-299 (เช่น 201 Created)
-        // กรณีบันทึกข้อมูลสำเร็จ -> แสดง popup แจ้งเตือนสำเร็จ
         await Swal.fire({
           icon: "success",
           title: `บันทึกสำเร็จ (status: ${response.status})`,
-          text: "เพิ่มไก่น้อยสุดที่รักเข้าชมรมเรียบร้อยแล้ว 🐣",
-          confirmButtonText: "ตกลง",
+          text: "เพิ่มไก่น้อยสุดที่รักเข้าชมรมเรียบร้อยแล้ว ไปดูในหน้าชุมชนได้เลย 🐣",
+          confirmButtonText: "ไปดูชุมชน",
           confirmButtonColor: "#F0955A",
         });
         setForm({
@@ -122,9 +121,9 @@ export default function FormRegister() {
           txt_picture: "",
         });
         if (fileInputRef.current) fileInputRef.current.value = "";
+        // พาไปหน้ารวมชุมชนไก่แจ้ทันทีหลังบันทึกสำเร็จ
+        router.push("/community");
       } else if (response.status === 400) {
-        // status 400 = Bad Request มักเกิดจากข้อมูลที่ส่งไปไม่ผ่าน validation
-        // แสดง popup เตือน พร้อมข้อความ error จาก server (ถ้ามี) หรือข้อความ default
         await Swal.fire({
           icon: "warning",
           title: `ข้อมูลไม่ถูกต้อง (status: ${response.status})`,
@@ -133,8 +132,6 @@ export default function FormRegister() {
           confirmButtonColor: "#fecc00",
         });
       } else if (response.status >= 500) {
-        // status 500 ขึ้นไป = Server Error เกิดปัญหาฝั่งเซิร์ฟเวอร์ ไม่ใช่ความผิดของผู้ใช้
-        // แสดง popup แจ้งเตือนข้อผิดพลาดจากเซิร์ฟเวอร์
         await Swal.fire({
           icon: "error",
           title: `เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ (status: ${response.status})`,
@@ -143,10 +140,7 @@ export default function FormRegister() {
           confirmButtonColor: "#fe0505",
         });
       }
-      // หมายเหตุ: ถ้า status ไม่ตรงกับเงื่อนไขใดเลย (เช่น 401, 403, 404)
-      // โค้ดจะไม่แสดง popup ใดๆ เลย อาจพิจารณาเพิ่ม else เพื่อดักกรณีอื่นๆ ด้วย
     } catch (error) {
-      // เข้ามาที่นี่เฉพาะตอน "เรียก fetch ไม่สำเร็จเลย" เช่น ไม่มีอินเทอร์เน็ต
       await Swal.fire({
         icon: "warning",
         title: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
@@ -175,7 +169,7 @@ export default function FormRegister() {
           <div className="relative bg-gradient-to-br from-[#FFB25B] to-[#F0955A] px-8 pt-8 pb-14 text-center">
             <div className="text-4xl mb-2">🐔💛</div>
             <h1 className={`${baloo.className} text-2xl text-white`}>
-              รักไก่ ก็ต้องลงทะเบียน
+              รักไก่ ก็ต้องเพิ่มเข้าชมรม
             </h1>
             <p className="text-[#FFF1DF] text-sm mt-1">
               บอกเราหน่อยว่าไก่แจ้สุดที่รักของคุณชื่ออะไร
@@ -196,6 +190,7 @@ export default function FormRegister() {
                 }}
               >
                 {form.txt_picture ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={form.txt_picture}
                     alt="รูปไก่ที่เลือก"

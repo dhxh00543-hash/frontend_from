@@ -12,7 +12,7 @@ const links = [
   { href: "/", label: "หน้าแรก" },
   { href: "/about", label: "เกี่ยวกับ" },
   { href: "/services", label: "บริการของเรา" },
-   // เตรียมไว้สำหรับหน้าที่ดึงข้อมูลด้วย GET
+  { href: "/community", label: "ชุมชนไก่แจ้" },
   { href: "/contact", label: "ติดต่อ" },
 ];
 
@@ -39,7 +39,12 @@ export default function Navbar() {
           {/* Menu */}
           <div className="flex gap-1">
             {links.map((link) => {
-              const active = pathname === link.href;
+              // ใช้ startsWith เพื่อให้เมนู "ชุมชนไก่แจ้" ยัง active
+              // อยู่ตอนเข้าไปดูหน้ารายละเอียดไก่ (/community/[id]) ด้วย
+              const active =
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href);
               return (
                 <Link
                   key={link.href}
@@ -56,12 +61,12 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* ปุ่มสมัครสมาชิกแยกเด่นออกมา */}
+          {/* ปุ่มเพิ่มไก่แยกเด่นออกมา */}
           <Link
-            href="/chiken"
+            href="/register"
             className={`${baloo.className} hidden sm:inline-block px-4 py-1.5 rounded-full bg-white text-[#D9762E] text-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all`}
           >
-            สมัครสมาชิก 💛
+            เพิ่มไก่ 💛
           </Link>
         </div>
       </div>
