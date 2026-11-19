@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Baloo_2 } from "next/font/google";
 import Swal from "sweetalert2";
@@ -10,18 +10,49 @@ const baloo = Baloo_2({
   weight: ["600", "700", "800"],
 });
 
-export default function FormRegister() {
-  const fileInputRef = useRef(null);
+// Endpoint ที่ใช้จริง
+const API_URL = "https://6a7eb09d3183f5fd884a530f.mockapi.io/api/pd";
+
+// --- URL สำหรับทดสอบถ่ายภาพหน้าจอ (ลบ // หน้าบรรทัดที่ต้องการ แล้วคอมเมนต์บรรทัดบน) ---
+// const API_URL = "https://httpbin.org/status/400"; // ทดสอบ Validation Error (400)
+// const API_URL = "https://httpbin.org/status/500"; // ทดสอบ Server Error (500)
+// Network Error: เปิด DevTools > Network > เลือก Offline แล้วกดสมัครสมาชิก
+
+const EMPTY_FORM = {
+  txt_firstname: "",
+  txt_lastname: "",
+  txt_username: "",
+  txt_password: "",
+};
+
+// ช่องกรอกข้อมูล 1 ช่อง: Label + Input + Helper text (หรือ Error แทนที่ Helper)
+// ประกาศไว้นอก component หลัก เพื่อไม่ให้ input เสียโฟกัสตอนพิมพ์
+function Field({ id, label, error, helper, children }) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-[#2F5D4E] mb-1.5"
+      >
+        {label}
+      </label>
+      {children}
+      {error ? (
+        <p className="text-xs text-[#F26B5E] mt-1.5">{error}</p>
+      ) : (
+        <p className="text-xs text-[#5F7F71] mt-1.5">{helper}</p>
+      )}
+    </div>
+  );
+}
+
+export default function RegisterPage() {
   const router = useRouter();
 
-  const [form, setForm] = useState({
-    txt_chikenname: "",
-    txt_chikenage: "",
-    txt_chikentype: "",
-    txt_picture: "",
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -33,40 +64,23 @@ export default function FormRegister() {
     }
   };
 
-  // อ่านไฟล์รูปที่เลือกแล้วแปลงเป็น base64 เพื่อเก็บ/พรีวิวได้จริง
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setErrors({ ...errors, txt_picture: "กรุณาเลือกไฟล์รูปภาพเท่านั้น" });
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      setErrors({ ...errors, txt_picture: "ไฟล์รูปต้องไม่เกิน 2MB" });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setForm((prev) => ({ ...prev, txt_picture: reader.result }));
-      setErrors((prev) => ({ ...prev, txt_picture: "" }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveImage = () => {
-    setForm((prev) => ({ ...prev, txt_picture: "" }));
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  // ปุ่มล้างข้อมูล: เคลียร์ทุกช่องและข้อความผิดพลาด
+  const handleReset = () => {
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setShowPassword(false);
   };
 
   const validate = () => {
     const newErrors = {};
-    if (!form.txt_chikenname.trim()) newErrors.txt_chikenname = "ใส่ชื่อไก่น้อยของท่านก่อนนะ";
-    if (!form.txt_chikenage) newErrors.txt_chikenage = "ใส่อายุไก่น้อยด้วยนะ";
-    else if (Number(form.txt_chikenage) < 0) newErrors.txt_chikenage = "อายุต้องไม่ติดลบนะ";
-    if (!form.txt_chikentype.trim()) newErrors.txt_chikentype = "ใส่สายพันธุ์ของไก่น้อยด้วย";
-    if (!form.txt_picture) newErrors.txt_picture = "อัปโหลดรูปไก่น้อยสักใบสิ";
+    if (!form.txt_firstname.trim()) newErrors.txt_firstname = "กรุณากรอกชื่อจริง";
+    if (!form.txt_lastname.trim()) newErrors.txt_lastname = "กรุณากรอกนามสกุล";
+    if (!form.txt_username.trim()) newErrors.txt_username = "กรุณากรอกชื่อผู้ใช้";
+    else if (!/^[A-Za-z0-9_]{4,20}$/.test(form.txt_username.trim()))
+      newErrors.txt_username = "ใช้ได้เฉพาะ a-z, 0-9 และ _ ความยาว 4-20 ตัวอักษร";
+    if (!form.txt_password) newErrors.txt_password = "กรุณากรอกรหัสผ่าน";
+    else if (form.txt_password.length < 6)
+      newErrors.txt_password = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -79,49 +93,44 @@ export default function FormRegister() {
       await Swal.fire({
         icon: "warning",
         title: "กรอกข้อมูลไม่ครบ",
-        text: "กรุณากรอกข้อมูลและแนบรูปให้ครบก่อนบันทึกนะ",
+        text: "กรุณากรอกข้อมูลให้ถูกต้องครบถ้วนก่อนสมัครสมาชิก",
         confirmButtonText: "โอเค",
-        confirmButtonColor: "#F0955A",
+        confirmButtonColor: "#059669",
       });
       return;
     }
 
     try {
-      // ยิง request แบบ POST ไปยัง API เพื่อเพิ่มไก่ตัวใหม่เข้าชุมชน
+      // ยิง request แบบ POST ไปยัง API เพื่อเพิ่มสมาชิกใหม่
       const response = await fetch(
-        "https://6a7eb09d3183f5fd884a530f.mockapi.io/api/pd",
+        API_URL,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            chikenname: form.txt_chikenname,
-            chikenage: form.txt_chikenage,
-            chikentype: form.txt_chikentype,
-            picture: form.txt_picture,
+            firstname: form.txt_firstname,
+            lastname: form.txt_lastname,
+            username: form.txt_username,
+            password: form.txt_password,
           }),
         }
       );
 
-      const result = await response.json();
+      // กันพลาด: ถ้า body ไม่ใช่ JSON ต้องไม่ตกไปที่ catch (ไม่งั้น 400/500 จะไม่ขึ้น)
+      const result = await response.json().catch(() => ({}));
 
       if (response.ok) {
         await Swal.fire({
           icon: "success",
-          title: `บันทึกสำเร็จ (status: ${response.status})`,
-          text: "เพิ่มไก่น้อยสุดที่รักเข้าชมรมเรียบร้อยแล้ว ไปดูในหน้าชุมชนได้เลย 🐣",
-          confirmButtonText: "ไปดูชุมชน",
-          confirmButtonColor: "#F0955A",
+          title: `สมัครสมาชิกสำเร็จ (status: ${response.status})`,
+          text: "บันทึกข้อมูลสมาชิกใหม่เรียบร้อยแล้ว",
+          confirmButtonText: "ตกลง",
+          confirmButtonColor: "#059669",
         });
-        setForm({
-          txt_chikenname: "",
-          txt_chikenage: "",
-          txt_chikentype: "",
-          txt_picture: "",
-        });
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        // พาไปหน้ารวมชุมชนไก่แจ้ทันทีหลังบันทึกสำเร็จ
+        setForm(EMPTY_FORM);
+        // พาไปหน้าถัดไปทันทีหลังบันทึกสำเร็จ (แก้ path ได้ตามต้องการ)
         router.push("/community");
       } else if (response.status === 400) {
         await Swal.fire({
@@ -151,153 +160,131 @@ export default function FormRegister() {
     }
   };
 
-  return (
-    <div className="min-h-screen w-full relative overflow-hidden bg-[#FFF8EC] flex items-center justify-center p-6">
-      {/* บลอบตกแต่งพื้นหลัง */}
-      <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-[#FFE1B8] blur-2xl opacity-70" />
-      <div className="pointer-events-none absolute -bottom-28 -right-16 w-80 h-80 rounded-full bg-[#FFD0C4] blur-2xl opacity-70" />
-      <div className="pointer-events-none absolute top-1/3 right-10 text-6xl opacity-20 rotate-12 select-none">
-        🪶
-      </div>
-      <div className="pointer-events-none absolute bottom-16 left-10 text-5xl opacity-20 -rotate-12 select-none">
-        🪶
-      </div>
+  const inputClass = (name) =>
+    `w-full border ${
+      errors[name] ? "border-[#F26B5E]" : "border-[#CFE5DA]"
+    } text-gray-800 rounded-lg px-4 py-2.5 text-base outline-none bg-[#F7FCFA]
+    transition focus:border-[#059669] focus:ring-4 focus:ring-[#A7F3D0]`;
 
-      <div className="max-w-md w-full relative z-10">
-        <div className="bg-white rounded-[28px] shadow-xl shadow-[#F0955A]/10 border border-[#FCE3C7] overflow-hidden">
+  return (
+    <div className="min-h-screen w-full bg-[#F3FAF7] flex items-center justify-center px-4 py-8 sm:p-6">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-lg shadow-[#059669]/10 border border-[#D1EDE0] overflow-hidden">
           {/* Header */}
-          <div className="relative bg-gradient-to-br from-[#FFB25B] to-[#F0955A] px-8 pt-8 pb-14 text-center">
-            <div className="text-4xl mb-2">🐔💛</div>
-            <h1 className={`${baloo.className} text-2xl text-white`}>
-              รักไก่ ก็ต้องเพิ่มเข้าชมรม
+          <div className="bg-gradient-to-br from-[#059669] to-[#0D9488] px-6 py-6 text-left">
+            <h1 className={`${baloo.className} text-xl sm:text-2xl text-white`}>
+              ฟอร์มสมัครสมาชิก
             </h1>
-            <p className="text-[#FFF1DF] text-sm mt-1">
-              บอกเราหน่อยว่าไก่แจ้สุดที่รักของคุณชื่ออะไร
+            <p className="text-[#D1FAE5] text-sm mt-1">
+              กรอกข้อมูลให้ครบถ้วนเพื่อสมัครสมาชิก
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="px-8 pb-8 -mt-8 space-y-5">
-            {/* อัปโหลดรูปจริง พรีวิวในกรอบหัวใจ */}
-            <div className="flex flex-col items-center -mt-2">
-              <label
-                htmlFor="chiken-photo"
-                className={`relative w-24 h-24 flex items-center justify-center cursor-pointer bg-white border-4 ${
-                  errors.txt_picture ? "border-[#F26B5E]" : "border-[#FFDCA8]"
-                } shadow-md overflow-hidden`}
-                style={{
-                  clipPath:
-                    "path('M50 88C50 88 8 62 8 32C8 15 21 4 36 4C44 4 50 9 50 9C50 9 56 4 64 4C79 4 92 15 92 32C92 62 50 88 50 88Z')",
-                }}
-              >
-                {form.txt_picture ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={form.txt_picture}
-                    alt="รูปไก่ที่เลือก"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-3xl">📷</span>
-                )}
-              </label>
-              <input
-                id="chiken-photo"
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <div className="flex items-center gap-3 mt-2">
-                <label
-                  htmlFor="chiken-photo"
-                  className="text-xs font-medium text-[#D9762E] cursor-pointer hover:underline"
-                >
-                  {form.txt_picture ? "เปลี่ยนรูป" : "อัปโหลดรูปไก่"}
-                </label>
-                {form.txt_picture && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="text-xs font-medium text-gray-400 hover:text-[#F26B5E]"
-                  >
-                    ลบรูป
-                  </button>
-                )}
-              </div>
-              {errors.txt_picture && (
-                <p className="text-xs text-[#F26B5E] mt-1">{errors.txt_picture}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#7A5C3E] mb-1.5">
-                🐣 ชื่อไก่น้อย
-              </label>
-              <input
-                type="text"
-                name="txt_chikenname"
-                value={form.txt_chikenname}
-                onChange={handleChange}
-                className={`w-full border ${
-                  errors.txt_chikenname ? "border-[#F26B5E]" : "border-[#F3E3CC]"
-                } text-gray-800 rounded-2xl px-4 py-2.5 outline-none bg-[#FFFBF3]
-                transition focus:border-[#F0955A] focus:ring-4 focus:ring-[#FFE1B8]`}
-                placeholder="ชื่อไก่น้อยของท่าน"
-              />
-              {errors.txt_chikenname && (
-                <p className="text-xs text-[#F26B5E] mt-1">{errors.txt_chikenname}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#7A5C3E] mb-1.5">
-                🎂 อายุ (เดือน)
-              </label>
-              <input
-                type="number"
-                name="txt_chikenage"
-                value={form.txt_chikenage}
-                onChange={handleChange}
-                min="0"
-                className={`w-full border ${
-                  errors.txt_chikenage ? "border-[#F26B5E]" : "border-[#F3E3CC]"
-                } text-gray-800 rounded-2xl px-4 py-2.5 outline-none bg-[#FFFBF3]
-                transition focus:border-[#F0955A] focus:ring-4 focus:ring-[#FFE1B8]`}
-                placeholder="ไก่ของท่านอายุกี่เดือนแล้ว"
-              />
-              {errors.txt_chikenage && (
-                <p className="text-xs text-[#F26B5E] mt-1">{errors.txt_chikenage}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#7A5C3E] mb-1.5">
-                🧬 สายพันธุ์
-              </label>
-              <input
-                type="text"
-                name="txt_chikentype"
-                value={form.txt_chikentype}
-                onChange={handleChange}
-                className={`w-full border ${
-                  errors.txt_chikentype ? "border-[#F26B5E]" : "border-[#F3E3CC]"
-                } text-gray-800 rounded-2xl px-4 py-2.5 outline-none bg-[#FFFBF3]
-                transition focus:border-[#F0955A] focus:ring-4 focus:ring-[#FFE1B8]`}
-                placeholder="ไก่น้อยของเชื้อสายใด"
-              />
-              {errors.txt_chikentype && (
-                <p className="text-xs text-[#F26B5E] mt-1">{errors.txt_chikentype}</p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className={`${baloo.className} w-full px-5 py-3 bg-gradient-to-r from-[#FFB25B] to-[#F0955A] text-white rounded-2xl
-              shadow-md shadow-[#F0955A]/30 hover:shadow-lg hover:shadow-[#F0955A]/40 hover:-translate-y-0.5 active:translate-y-0 transition-all`}
+          {/* ฟิลด์เรียงลงมาแถวเดียว */}
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="px-5 sm:px-6 pt-6 pb-6 space-y-5"
+          >
+            <Field
+              id="txt_firstname"
+              label="🙂 ชื่อจริง"
+              error={errors.txt_firstname}
+              helper="เช่น สมชาย"
             >
-              บันทึกไก่น้อยของฉัน 💛
-            </button>
+              <input
+                id="txt_firstname"
+                type="text"
+                name="txt_firstname"
+                value={form.txt_firstname}
+                onChange={handleChange}
+                autoComplete="given-name"
+                className={inputClass("txt_firstname")}
+                placeholder="ชื่อจริงของคุณ"
+              />
+            </Field>
+
+            <Field
+              id="txt_lastname"
+              label="👤 นามสกุล"
+              error={errors.txt_lastname}
+              helper="เช่น ใจดี"
+            >
+              <input
+                id="txt_lastname"
+                type="text"
+                name="txt_lastname"
+                value={form.txt_lastname}
+                onChange={handleChange}
+                autoComplete="family-name"
+                className={inputClass("txt_lastname")}
+                placeholder="นามสกุลของคุณ"
+              />
+            </Field>
+
+            <Field
+              id="txt_username"
+              label="🏷️ ชื่อผู้ใช้ (Username)"
+              error={errors.txt_username}
+              helper="ใช้ a-z, 0-9 และ _ ความยาว 4-20 ตัวอักษร"
+            >
+              <input
+                id="txt_username"
+                type="text"
+                name="txt_username"
+                value={form.txt_username}
+                onChange={handleChange}
+                autoComplete="username"
+                autoCapitalize="none"
+                className={inputClass("txt_username")}
+                placeholder="เช่น somchai_01"
+              />
+            </Field>
+
+            <Field
+              id="txt_password"
+              label="🔒 รหัสผ่าน"
+              error={errors.txt_password}
+              helper="อย่างน้อย 6 ตัวอักษร"
+            >
+              <div className="relative">
+                <input
+                  id="txt_password"
+                  type={showPassword ? "text" : "password"}
+                  name="txt_password"
+                  value={form.txt_password}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  className={`${inputClass("txt_password")} pr-16`}
+                  placeholder="ตั้งรหัสผ่านของคุณ"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-[#047857] hover:underline"
+                >
+                  {showPassword ? "ซ่อน" : "แสดง"}
+                </button>
+              </div>
+            </Field>
+
+            {/* ปุ่มบันทึกเต็มความกว้าง + ปุ่มล้างข้อมูลอยู่ด้านล่าง */}
+            <div className="space-y-3 pt-1">
+              <button
+                type="submit"
+                className={`${baloo.className} w-full px-5 py-3 bg-gradient-to-r from-[#059669] to-[#0D9488] text-white rounded-lg
+                shadow-md shadow-[#059669]/30 hover:shadow-lg hover:shadow-[#059669]/40 hover:-translate-y-0.5 active:translate-y-0 transition-all`}
+              >
+                บันทึกข้อมูล
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="w-full px-5 py-2.5 rounded-lg border border-[#CFE5DA] bg-white text-sm text-[#2F5D4E] hover:bg-[#ECFDF5] transition"
+              >
+                ล้างข้อมูล
+              </button>
+            </div>
           </form>
         </div>
       </div>
